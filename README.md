@@ -1,0 +1,148 @@
+# Slack Export Summary
+
+A Node.js CLI tool that converts Slack export folder structure into organized markdown files by month.
+
+## Features
+
+- Processes entire Slack export folder structures with channel subfolders
+- Groups conversations by month (YYYY-MM.md format)
+- Maps user IDs to actual user names
+- Organizes by date headings and channel subheadings
+- Includes timestamps and message content
+- Clean, readable output format
+- Command-line interface with options
+
+## Installation
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+## Usage
+
+### Basic Usage
+
+```bash
+node index.js <data-folder>
+```
+
+### Example
+
+```bash
+node index.js data
+```
+
+### Options
+
+- `-o, --output <folder>`: Specify output folder path (default: `output`)
+- `--no-timestamps`: Exclude timestamps from the output
+
+### Examples with Options
+
+```bash
+# Specify custom output folder
+node index.js data -o monthly-summaries
+
+# Generate without timestamps
+node index.js data --no-timestamps
+
+# Custom output folder without timestamps
+node index.js data -o clean-output --no-timestamps
+```
+
+## Input Structure
+
+The tool expects a data folder with the following structure:
+
+```
+data/
+├── users.json
+├── channel-1/
+│   ├── 2021-01-15.json
+│   ├── 2021-01-16.json
+│   └── 2021-02-01.json
+├── channel-2/
+│   ├── 2021-01-20.json
+│   └── 2021-02-05.json
+└── ...
+```
+
+### Files
+
+- **users.json**: Contains user information for ID to name mapping
+- **Channel folders**: Each folder represents a Slack channel
+- **Date files**: YYYY-MM-DD.json files containing messages for that date
+
+## Output Structure
+
+The tool generates monthly markdown files organized as follows:
+
+```
+output/
+├── 2021-01.md
+├── 2021-02.md
+├── 2021-03.md
+└── ...
+```
+
+## Output Format
+
+Each monthly file contains:
+
+- **Month heading**: `# 2021-02`
+- **Date sections**: `## February 15, 2021`
+- **Channel sections**: `### channel-name`
+- **Messages**: `time @name: message` or `@name: message` (without timestamps)
+
+### Example Output
+
+**With timestamps:**
+
+```markdown
+# 2021-02
+
+## February 15, 2021
+
+### bizops-plan
+
+6:30:04 PM @Carlo: comfy
+6:30:11 PM @Carlo: comfyliving.com for 7k
+6:30:24 PM @Carlo: and then eventually comfy.com for 1 mio or whatever
+
+### general
+
+8:45:23 PM @Anand: Great meeting today everyone!
+```
+
+**Without timestamps (using --no-timestamps):**
+
+```markdown
+# 2021-02
+
+## February 15, 2021
+
+### bizops-plan
+
+@Carlo: comfy
+@Carlo: comfyliving.com for 7k
+@Carlo: and then eventually comfy.com for 1 mio or whatever
+
+### general
+
+@Anand: Great meeting today everyone!
+```
+
+## Features
+
+- **Automatic month grouping**: Messages are automatically organized by month
+- **Date organization**: Within each month, messages are grouped by date
+- **Channel organization**: Within each date, messages are grouped by channel
+- **User mapping**: User IDs are converted to readable names
+- **Flexible output**: Choose between timestamped and non-timestamped formats
+- **Scalable**: Handles large Slack exports with hundreds of channels and thousands of messages
+
+## License
+
+MIT

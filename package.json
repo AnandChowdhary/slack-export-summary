@@ -1,0 +1,24 @@
+{
+  "name": "slack-export-summary",
+  "version": "1.0.0",
+  "description": "A CLI tool to convert Slack export JSON to readable markdown format",
+  "main": "index.js",
+  "bin": {
+    "slack-summary": "./index.js"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "test": "node index.js example.json users.json"
+  },
+  "keywords": [
+    "slack",
+    "export",
+    "markdown",
+    "cli"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^11.1.0"
+  }
+}
