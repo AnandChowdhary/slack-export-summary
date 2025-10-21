@@ -10,7 +10,10 @@
     "start": "node index.js",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "summarize": "node summarize.js",
+    "summarize-all": "node summarize-all.js",
+    "remove-testing-limit": "node remove-testing-limit.js"
   },
   "keywords": [
     "slack",
@@ -21,7 +24,9 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "commander": "^11.1.0"
+    "commander": "^11.1.0",
+    "dotenv": "^17.2.3",
+    "openai": "^6.6.0"
   },
   "devDependencies": {
     "jest": "^29.7.0"
