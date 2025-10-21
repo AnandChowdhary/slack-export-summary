@@ -5,6 +5,14 @@ const fs = require("fs");
 const path = require("path");
 const { OpenAI } = require("openai");
 
+// Check if API key is available
+if (!process.env.OPEN_API_KEY) {
+  console.error("❌ Error: OPEN_API_KEY environment variable is not set.");
+  console.error("Please create a .env file with your OpenAI API key:");
+  console.error("OPEN_API_KEY=your_api_key_here");
+  process.exit(1);
+}
+
 // Initialize OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.OPEN_API_KEY,
@@ -126,6 +134,22 @@ async function main() {
 
   const summaries = [];
   let processed = 0;
+  const summaryPath = path.join(__dirname, "summary.md");
+
+  // Initialize the summary file with header
+  const header = [
+    "# Company Conversation Summary",
+    "",
+    "This document contains AI-generated summaries of monthly Slack conversations, ",
+    "providing insights into the company's journey, decisions, and key discussions.",
+    "",
+    "Generated on: " + new Date().toISOString(),
+    "Total months to process: " + monthlyFiles.length,
+    "",
+  ].join("\n");
+
+  fs.writeFileSync(summaryPath, header, "utf8");
+  console.log("📄 Initialized summary.md file");
 
   // Process each month
   for (const monthFile of monthlyFiles) {
@@ -133,25 +157,35 @@ async function main() {
     summaries.push(summary);
     processed++;
 
-    console.log(`✅ Completed ${processed}/${monthlyFiles.length} months`);
+    // Append this month's summary to the file immediately
+    fs.appendFileSync(summaryPath, summary + "\n\n", "utf8");
+
+    console.log(
+      `✅ Completed ${processed}/${monthlyFiles.length} months - written to summary.md`
+    );
 
     // Add a small delay to be respectful to the API
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 
-  // Combine all summaries into a single document
-  const combinedSummary = [
+  // Update the header with final count
+  const finalHeader = [
     "# Company Conversation Summary",
     "",
     "This document contains AI-generated summaries of monthly Slack conversations, ",
     "providing insights into the company's journey, decisions, and key discussions.",
     "",
-    ...summaries,
+    "Generated on: " + new Date().toISOString(),
+    "Total months processed: " + processed,
+    "",
   ].join("\n");
 
-  // Write the combined summary
-  const summaryPath = path.join(__dirname, "summary.md");
-  fs.writeFileSync(summaryPath, combinedSummary, "utf8");
+  // Read current content and replace header
+  const currentContent = fs.readFileSync(summaryPath, "utf8");
+  const contentWithoutHeader = currentContent.substring(header.length);
+  const finalContent = finalHeader + contentWithoutHeader;
+
+  fs.writeFileSync(summaryPath, finalContent, "utf8");
 
   console.log(`\n✅ Successfully generated comprehensive summary!`);
   console.log(`📄 Summary saved to: ${summaryPath}`);

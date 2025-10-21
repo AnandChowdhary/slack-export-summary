@@ -11,9 +11,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "summarize": "node summarize.js",
-    "summarize-all": "node summarize-all.js",
-    "remove-testing-limit": "node remove-testing-limit.js"
+    "summarize": "node summarize.js"
   },
   "keywords": [
     "slack",
