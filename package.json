@@ -1,14 +1,16 @@
 {
   "name": "slack-export-summary",
   "version": "1.0.0",
-  "description": "A CLI tool to convert Slack export JSON to readable markdown format",
+  "description": "A CLI tool to convert Slack export folder structure to organized markdown files by month",
   "main": "index.js",
   "bin": {
     "slack-summary": "./index.js"
   },
   "scripts": {
     "start": "node index.js",
-    "test": "node index.js example.json users.json"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "keywords": [
     "slack",
@@ -20,5 +22,21 @@
   "license": "MIT",
   "dependencies": {
     "commander": "^11.1.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "collectCoverageFrom": [
+      "index.js",
+      "!**/node_modules/**"
+    ],
+    "coverageDirectory": "coverage",
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html"
+    ]
   }
 }

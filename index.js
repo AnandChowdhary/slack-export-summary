@@ -7,18 +7,20 @@ const { program } = require("commander");
 /**
  * Parse command line arguments
  */
-program
-  .version("1.0.0")
-  .description(
-    "Convert Slack export folder structure to organized markdown files by month"
-  )
-  .argument(
-    "<input-folder>",
-    "Path to the data folder containing users.json and channel subfolders"
-  )
-  .option("-o, --output <folder>", "Output folder path", "output")
-  .option("--no-timestamps", "Exclude timestamps from output")
-  .parse();
+function parseArguments() {
+  program
+    .version("1.0.0")
+    .description(
+      "Convert Slack export folder structure to organized markdown files by month"
+    )
+    .argument(
+      "<input-folder>",
+      "Path to the data folder containing users.json and channel subfolders"
+    )
+    .option("-o, --output <folder>", "Output folder path", "output")
+    .option("--no-timestamps", "Exclude timestamps from output")
+    .parse();
+}
 
 /**
  * Load and parse JSON file
@@ -216,6 +218,7 @@ function generateMonthMarkdown(monthKey, monthData, userMap, options) {
  * Main function
  */
 function main() {
+  parseArguments();
   const options = program.opts();
   const [inputFolder] = program.args;
 
@@ -229,6 +232,11 @@ function main() {
 
   // Load users
   const usersFile = path.join(inputFolder, "users.json");
+  if (!fs.existsSync(usersFile)) {
+    console.error(`Users file not found: ${usersFile}`);
+    process.exit(1);
+  }
+
   const users = loadJsonFile(usersFile);
   const userMap = createUserMapping(users);
 
@@ -254,11 +262,22 @@ function main() {
       userMap,
       options
     );
-    const outputFile = path.join(options.output, `${monthKey}.md`);
 
-    fs.writeFileSync(outputFile, markdown, "utf8");
-    console.log(`✅ Created: ${outputFile}`);
-    totalFiles++;
+    // Only create file if there's actual content (check for message lines)
+    const lines = markdown.trim().split("\n");
+    const hasMessages = lines.some(
+      (line) =>
+        line.includes("@") &&
+        line.includes(":") &&
+        (line.match(/^\d{1,2}:\d{2}:\d{2} (AM|PM) @/) || line.match(/^@/))
+    );
+
+    if (hasMessages) {
+      const outputFile = path.join(options.output, `${monthKey}.md`);
+      fs.writeFileSync(outputFile, markdown, "utf8");
+      console.log(`✅ Created: ${outputFile}`);
+      totalFiles++;
+    }
   }
 
   console.log(
@@ -266,7 +285,7 @@ function main() {
   );
 }
 
-// Run the program
+// Run the program only when called directly, not when imported
 if (require.main === module) {
   main();
 }

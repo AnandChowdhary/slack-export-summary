@@ -1,0 +1,20 @@
+[
+  {
+    "id": "U123456",
+    "profile": {
+      "display_name": "John Doe",
+      "real_name": "John Doe"
+    }
+  },
+  {
+    "id": "U789012",
+    "profile": {
+      "display_name": "Jane Smith",
+      "real_name": "Jane Smith"
+    }
+  },
+  {
+    "id": "U345678",
+    "name": "bob.wilson"
+  }
+]

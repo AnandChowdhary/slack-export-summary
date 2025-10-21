@@ -143,6 +143,27 @@ Each monthly file contains:
 - **Flexible output**: Choose between timestamped and non-timestamped formats
 - **Scalable**: Handles large Slack exports with hundreds of channels and thousands of messages
 
+## Testing
+
+The project includes comprehensive tests using Jest:
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage report
+npm run test:coverage
+```
+
+### Test Coverage
+
+- **Unit tests**: Test individual functions like user mapping, text cleaning, and markdown generation
+- **Integration tests**: Test the complete CLI workflow with real file structures
+- **Error handling**: Test edge cases like missing files, invalid JSON, and empty directories
+
 ## License
 
 MIT

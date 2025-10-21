@@ -1,0 +1,16 @@
+[
+  {
+    "user": "U123456",
+    "type": "message",
+    "ts": "1613401200.000100",
+    "text": "Hello everyone! This is a test message.",
+    "team": "TP61A3CFK"
+  },
+  {
+    "user": "U789012",
+    "type": "message",
+    "ts": "1613401260.000200",
+    "text": "Hi @U123456, thanks for the message!",
+    "team": "TP61A3CFK"
+  }
+]
