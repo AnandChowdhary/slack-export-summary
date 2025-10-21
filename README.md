@@ -164,6 +164,15 @@ npm run test:coverage
 - **Integration tests**: Test the complete CLI workflow with real file structures
 - **Error handling**: Test edge cases like missing files, invalid JSON, and empty directories
 
+### Continuous Integration
+
+GitHub Actions workflows are configured to automatically run tests on:
+
+- **Push** to main/master branches
+- **Pull requests** to main/master branches
+
+The CI runs tests on multiple Node.js versions (18.x and 20.x) and generates coverage reports.
+
 ## License
 
 MIT
