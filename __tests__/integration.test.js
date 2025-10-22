@@ -44,8 +44,8 @@ describe("Integration Tests", () => {
     expect(febContent).toContain("# 2021-02");
     expect(febContent).toContain("## February 15, 2021");
     expect(febContent).toContain("## February 16, 2021");
-    expect(febContent).toContain("### channel-1");
-    expect(febContent).toContain("### channel-2");
+    expect(febContent).toContain("### #channel-1");
+    expect(febContent).toContain("### #channel-2");
     expect(febContent).toContain("@John Doe:");
     expect(febContent).toContain("@Jane Smith:");
     expect(febContent).toContain("@bob.wilson:");

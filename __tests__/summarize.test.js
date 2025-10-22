@@ -1,5 +1,9 @@
 const fs = require("fs");
 const path = require("path");
+
+// Mock environment variable before requiring the module
+process.env.OPEN_API_KEY = "test_api_key_for_testing";
+
 const { getMonthlyFiles } = require("../summarize");
 
 describe("Summarization functionality", () => {

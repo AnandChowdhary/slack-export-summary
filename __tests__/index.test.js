@@ -128,7 +128,7 @@ describe("Slack Export Summary CLI", () => {
 
       expect(result).toContain("# 2021-02");
       expect(result).toContain("## February 15, 2021");
-      expect(result).toContain("### channel-1");
+      expect(result).toContain("### #channel-1");
       expect(result).toContain("@John Doe: Hello everyone!");
       expect(result).toMatch(
         /\d{1,2}:\d{2}:\d{2} (AM|PM) @John Doe: Hello everyone!/
@@ -161,7 +161,7 @@ describe("Slack Export Summary CLI", () => {
 
       expect(result).toContain("# 2021-02");
       expect(result).toContain("## February 15, 2021");
-      expect(result).toContain("### channel-1");
+      expect(result).toContain("### #channel-1");
       expect(result).toContain("@John Doe: Hello everyone!");
       expect(result).not.toContain("12:00:00 PM");
     });
@@ -198,8 +198,8 @@ describe("Slack Export Summary CLI", () => {
 
       expect(result).toContain("## February 15, 2021");
       expect(result).toContain("## February 16, 2021");
-      expect(result).toContain("### channel-1");
-      expect(result).toContain("### channel-2");
+      expect(result).toContain("### #channel-1");
+      expect(result).toContain("### #channel-2");
       expect(result).toContain("@John Doe: Message 1");
       expect(result).toContain("@Jane Smith: Message 2");
       expect(result).toContain("@bob.wilson: Message 3");
