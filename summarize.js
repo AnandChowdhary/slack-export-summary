@@ -259,12 +259,7 @@ async function generateMonthSummary(monthFile, outputDir) {
           secondCompletion.choices[0].message.content.trim();
 
         console.log(`🔗 Combining summaries for ${monthName}...`);
-        const combinedSummary = await combineSummaries(
-          firstSummary,
-          secondSummary,
-          monthName
-        );
-
+        const combinedSummary = `${firstSummary}${secondSummary}`;
         const formattedSummary = `## ${monthName}\n\n${combinedSummary}`;
 
         // Save to cache
