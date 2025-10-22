@@ -105,6 +105,59 @@ function saveToCache(monthFile, summary) {
 }
 
 /**
+ * Split month content into first and second half
+ */
+function splitMonthContent(content) {
+  const lines = content.split("\n");
+  const midPoint = Math.floor(lines.length / 2);
+
+  // Find a good split point (preferably at a date boundary)
+  let splitIndex = midPoint;
+  for (let i = midPoint; i < lines.length; i++) {
+    if (lines[i].startsWith("## ")) {
+      splitIndex = i;
+      break;
+    }
+  }
+
+  const firstHalf = lines.slice(0, splitIndex).join("\n");
+  const secondHalf = lines.slice(splitIndex).join("\n");
+
+  return { firstHalf, secondHalf };
+}
+
+/**
+ * Combine two summaries into one cohesive summary
+ */
+async function combineSummaries(firstSummary, secondSummary, monthName) {
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-5-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a helpful assistant that combines two summaries of the same month into one cohesive summary. Merge the key points, remove duplicates, and create a unified narrative that flows well.",
+        },
+        {
+          role: "user",
+          content: `Please combine these two summaries for ${monthName} into one comprehensive summary:\n\nFirst half summary:\n${firstSummary}\n\nSecond half summary:\n${secondSummary}`,
+        },
+      ],
+    });
+
+    return completion.choices[0].message.content.trim();
+  } catch (error) {
+    console.error(
+      `❌ Error combining summaries for ${monthName}:`,
+      error.message
+    );
+    // Fallback: just concatenate the summaries
+    return `${firstSummary}\n\n${secondSummary}`;
+  }
+}
+
+/**
  * Generate summary for a single month using OpenAI API
  */
 async function generateMonthSummary(monthFile, outputDir) {
@@ -159,8 +212,77 @@ async function generateMonthSummary(monthFile, outputDir) {
 
     return formattedSummary;
   } catch (error) {
-    console.error(`❌ Error summarizing ${monthName}:`, error.message);
-    return `## ${monthName}\n\nError generating summary: ${error.message}`;
+    // Check if this is a token limit error
+    if (
+      error.message.includes("Input tokens exceed") ||
+      error.message.includes("token limit")
+    ) {
+      console.log(
+        `⚠️  Token limit exceeded for ${monthName}, splitting into two parts...`
+      );
+
+      try {
+        const { firstHalf, secondHalf } = splitMonthContent(content);
+
+        console.log(`📝 Summarizing first half of ${monthName}...`);
+        const firstCompletion = await openai.chat.completions.create({
+          model: "gpt-5-mini",
+          messages: [
+            {
+              role: "system",
+              content: getSystemPrompt(),
+            },
+            {
+              role: "user",
+              content: `# ${monthName} (First Half)\n\n${firstHalf}`,
+            },
+          ],
+        });
+
+        console.log(`📝 Summarizing second half of ${monthName}...`);
+        const secondCompletion = await openai.chat.completions.create({
+          model: "gpt-5-mini",
+          messages: [
+            {
+              role: "system",
+              content: getSystemPrompt(),
+            },
+            {
+              role: "user",
+              content: `# ${monthName} (Second Half)\n\n${secondHalf}`,
+            },
+          ],
+        });
+
+        const firstSummary = firstCompletion.choices[0].message.content.trim();
+        const secondSummary =
+          secondCompletion.choices[0].message.content.trim();
+
+        console.log(`🔗 Combining summaries for ${monthName}...`);
+        const combinedSummary = await combineSummaries(
+          firstSummary,
+          secondSummary,
+          monthName
+        );
+
+        const formattedSummary = `## ${monthName}\n\n${combinedSummary}`;
+
+        // Save to cache
+        saveToCache(monthFile, formattedSummary);
+        console.log(`💾 Cached combined summary for ${monthName}`);
+
+        return formattedSummary;
+      } catch (splitError) {
+        console.error(
+          `❌ Error summarizing split content for ${monthName}:`,
+          splitError.message
+        );
+        return `## ${monthName}\n\nError generating summary: ${splitError.message}`;
+      }
+    } else {
+      console.error(`❌ Error summarizing ${monthName}:`, error.message);
+      return `## ${monthName}\n\nError generating summary: ${error.message}`;
+    }
   }
 }
 
@@ -321,4 +443,6 @@ module.exports = {
   getCacheFilePath,
   getCachedSummary,
   saveToCache,
+  splitMonthContent,
+  combineSummaries,
 };

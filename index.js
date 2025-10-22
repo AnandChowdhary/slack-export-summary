@@ -69,8 +69,16 @@ function createDMMapping(dms, userMap) {
       .sort(); // Sort names for consistent ordering
 
     // Skip DMs where one of the participant names contains "Brex" (bots)
-    if (participantNames.some((name) => name.toLowerCase().includes("brex"))) {
-      console.log(`Skipping DM with Brex bot: ${participantNames.join(", ")}`);
+    if (
+      participantNames.some(
+        (name) =>
+          name.toLowerCase().includes("brex") ||
+          name.toLowerCase().includes("dixi app") ||
+          name.toLowerCase().includes("google calendar") ||
+          name.toLowerCase().includes("firstquadrant")
+      )
+    ) {
+      console.log(`Skipping DM with bot: ${participantNames.join(", ")}`);
       return;
     }
 
@@ -168,6 +176,18 @@ function scanDataFolder(inputFolder, userMap, dmMap, options) {
     // Skip channels starting with "events"
     if (channelName.toLowerCase().startsWith("events")) {
       console.log(`Skipping events channel: "${channelName}"`);
+      return;
+    }
+
+    // Skip channels containing "-test-"
+    if (channelName.toLowerCase().includes("-test-")) {
+      console.log(`Skipping test channel: "${channelName}"`);
+      return;
+    }
+
+    // Skip channels starting with "external"
+    if (channelName.toLowerCase().startsWith("external")) {
+      console.log(`Skipping external channel: "${channelName}"`);
       return;
     }
 

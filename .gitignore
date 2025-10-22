@@ -47,3 +47,4 @@ coverage/
 data/
 output/
 summary.md
+cache/
