@@ -69,10 +69,14 @@ function createDMMapping(dms, userMap) {
       .sort(); // Sort names for consistent ordering
 
     if (participantNames.length > 0) {
-      const dmName =
-        participantNames.length === 1
-          ? `DM with ${participantNames[0]}`
-          : `DM between ${participantNames.join(", ")}`;
+      let dmName;
+      if (participantNames.length === 1) {
+        dmName = `DM with ${participantNames[0]}`;
+      } else if (participantNames.length === 2) {
+        dmName = `DM between ${participantNames[0]} and ${participantNames[1]}`;
+      } else {
+        dmName = `DM between ${participantNames.join(", ")}`;
+      }
       dmMap.set(dm.id, dmName);
     }
   });
@@ -246,7 +250,7 @@ function generateMonthMarkdown(monthKey, monthData, userMap, options) {
       );
 
       if (validMessages.length > 0) {
-        markdown += `### ${channelName}\n\n`;
+        markdown += `### #${channelName}\n\n`;
 
         validMessages.forEach((message) => {
           const userName = userMap.get(message.user) || message.user;
@@ -258,6 +262,13 @@ function generateMonthMarkdown(monthKey, monthData, userMap, options) {
 
           const cleanText = cleanMessageText(message.text, userMap);
 
+          // Truncate message if longer than 1000 characters
+          const truncatedText =
+            cleanText.length > 1000
+              ? cleanText.substring(0, 1000) +
+                `...[truncated ${cleanText.length - 1000} characters]`
+              : cleanText;
+
           // Format time if timestamps are enabled
           const timeStr =
             options.timestamps !== false && message.ts
@@ -266,9 +277,9 @@ function generateMonthMarkdown(monthKey, monthData, userMap, options) {
 
           // Format: time @name: message or @name: message if no timestamps
           if (timeStr) {
-            markdown += `${timeStr} @${userName}: ${cleanText}\n`;
+            markdown += `${timeStr} @${userName}: ${truncatedText}\n`;
           } else {
-            markdown += `@${userName}: ${cleanText}\n`;
+            markdown += `@${userName}: ${truncatedText}\n`;
           }
         });
 
