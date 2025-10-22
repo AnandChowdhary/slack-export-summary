@@ -57,6 +57,30 @@ function createUserMapping(users) {
 }
 
 /**
+ * Create DM mapping from DM ID to participant names
+ */
+function createDMMapping(dms, userMap) {
+  const dmMap = new Map();
+
+  dms.forEach((dm) => {
+    const participantNames = dm.members
+      .map((userId) => userMap.get(userId) || userId)
+      .filter((name) => name !== "USLACKBOT") // Filter out Slackbot
+      .sort(); // Sort names for consistent ordering
+
+    if (participantNames.length > 0) {
+      const dmName =
+        participantNames.length === 1
+          ? `DM with ${participantNames[0]}`
+          : `DM between ${participantNames.join(", ")}`;
+      dmMap.set(dm.id, dmName);
+    }
+  });
+
+  return dmMap;
+}
+
+/**
  * Clean up message text by replacing user mentions
  */
 function cleanMessageText(text, userMap) {
@@ -106,7 +130,7 @@ function formatTime(timestamp) {
 /**
  * Scan data folder and collect all messages organized by month
  */
-function scanDataFolder(inputFolder, userMap, options) {
+function scanDataFolder(inputFolder, userMap, dmMap, options) {
   const messagesByMonth = new Map();
   const usersFile = path.join(inputFolder, "users.json");
 
@@ -115,16 +139,21 @@ function scanDataFolder(inputFolder, userMap, options) {
     process.exit(1);
   }
 
-  // Read all channel folders
+  // Read all folders (channels and DMs)
   const items = fs.readdirSync(inputFolder, { withFileTypes: true });
-  const channelFolders = items
+  const allFolders = items
     .filter((item) => item.isDirectory())
     .map((item) => item.name);
 
+  // Separate channels and DMs
+  const channelFolders = allFolders.filter((folder) => !folder.startsWith("D"));
+  const dmFolders = allFolders.filter((folder) => folder.startsWith("D"));
+
   console.log(
-    `Found ${channelFolders.length} channels: ${channelFolders.join(", ")}`
+    `Found ${channelFolders.length} channels and ${dmFolders.length} DMs`
   );
 
+  // Process channel folders
   channelFolders.forEach((channelName) => {
     const channelPath = path.join(inputFolder, channelName);
     const files = fs
@@ -153,6 +182,37 @@ function scanDataFolder(inputFolder, userMap, options) {
 
       const dateData = monthData.get(dateStr);
       dateData.set(channelName, messages);
+    });
+  });
+
+  // Process DM folders
+  dmFolders.forEach((dmId) => {
+    const dmPath = path.join(inputFolder, dmId);
+    const files = fs
+      .readdirSync(dmPath)
+      .filter((file) => file.endsWith(".json"));
+
+    const dmName = dmMap.get(dmId) || `DM ${dmId}`;
+    console.log(`Processing DM "${dmName}" with ${files.length} date files`);
+
+    files.forEach((filename) => {
+      const dateStr = getDateFromFilename(filename);
+      const monthKey = getMonthKey(dateStr);
+      const filePath = path.join(dmPath, filename);
+
+      const messages = loadJsonFile(filePath);
+
+      if (!messagesByMonth.has(monthKey)) {
+        messagesByMonth.set(monthKey, new Map());
+      }
+
+      const monthData = messagesByMonth.get(monthKey);
+      if (!monthData.has(dateStr)) {
+        monthData.set(dateStr, new Map());
+      }
+
+      const dateData = monthData.get(dateStr);
+      dateData.set(dmName, messages);
     });
   });
 
@@ -190,6 +250,12 @@ function generateMonthMarkdown(monthKey, monthData, userMap, options) {
 
         validMessages.forEach((message) => {
           const userName = userMap.get(message.user) || message.user;
+
+          // Skip messages from undefined users (typically bots)
+          if (userName === "undefined") {
+            return;
+          }
+
           const cleanText = cleanMessageText(message.text, userMap);
 
           // Format time if timestamps are enabled
@@ -242,9 +308,22 @@ function main() {
 
   console.log(`Loaded ${users.length} users`);
 
+  // Load DMs
+  console.log("Loading DMs...");
+  const dmsFile = path.join(inputFolder, "dms.json");
+  let dms = [];
+  if (fs.existsSync(dmsFile)) {
+    dms = loadJsonFile(dmsFile);
+    console.log(`Loaded ${dms.length} DMs`);
+  } else {
+    console.log("No dms.json file found, skipping DM processing");
+  }
+
+  const dmMap = createDMMapping(dms, userMap);
+
   // Scan data folder
   console.log("Scanning data folder...");
-  const messagesByMonth = scanDataFolder(inputFolder, userMap, options);
+  const messagesByMonth = scanDataFolder(inputFolder, userMap, dmMap, options);
 
   // Create output folder
   if (!fs.existsSync(options.output)) {
@@ -290,4 +369,9 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { loadJsonFile, createUserMapping, generateMonthMarkdown };
+module.exports = {
+  loadJsonFile,
+  createUserMapping,
+  createDMMapping,
+  generateMonthMarkdown,
+};
