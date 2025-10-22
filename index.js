@@ -68,6 +68,12 @@ function createDMMapping(dms, userMap) {
       .filter((name) => name !== "USLACKBOT") // Filter out Slackbot
       .sort(); // Sort names for consistent ordering
 
+    // Skip DMs where one of the participant names contains "Brex" (bots)
+    if (participantNames.some((name) => name.toLowerCase().includes("brex"))) {
+      console.log(`Skipping DM with Brex bot: ${participantNames.join(", ")}`);
+      return;
+    }
+
     if (participantNames.length > 0) {
       let dmName;
       if (participantNames.length === 1) {
@@ -159,6 +165,12 @@ function scanDataFolder(inputFolder, userMap, dmMap, options) {
 
   // Process channel folders
   channelFolders.forEach((channelName) => {
+    // Skip channels starting with "events"
+    if (channelName.toLowerCase().startsWith("events")) {
+      console.log(`Skipping events channel: "${channelName}"`);
+      return;
+    }
+
     const channelPath = path.join(inputFolder, channelName);
     const files = fs
       .readdirSync(channelPath)
