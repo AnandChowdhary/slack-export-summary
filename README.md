@@ -233,7 +233,7 @@ The CI runs tests on multiple Node.js versions (18.x and 20.x) and generates cov
 
 ## 🤖 AI summarization
 
-The tool includes AI-powered summarization capabilities using OpenAI's API to generate comprehensive summaries of monthly conversations.
+The tool includes AI-powered summarization capabilities using OpenAI's API to generate comprehensive summaries of monthly conversations with intelligent content splitting and tl;dr features.
 
 ### 🚀 Usage
 
@@ -262,15 +262,39 @@ OPEN_API_KEY=your_openai_api_key_here
 The summarization creates a `summary.md` file containing:
 
 - AI-generated summaries for each month
+- **tl;dr sections** with one-sentence summaries for quick overview
 - Chronological organization
 - Key discussions, decisions, and themes
 - Professional formatting with month headings
+
+### 🔄 Smart Content Splitting
+
+The tool automatically handles large content volumes with intelligent splitting:
+
+- **Single attempt**: Tries to summarize the entire month first
+- **Two-part splitting**: If token limit exceeded, splits content into first/second half
+- **Four-part splitting**: If two-part splitting still exceeds limits, splits into quarters
+- **Automatic combination**: AI combines split summaries into cohesive narratives
+- **Cache optimization**: Results are cached to avoid re-processing
+
+### 💡 Example Output with tl;dr
+
+```markdown
+## July 2022
+
+**tl;dr:** Major product launch with significant team expansion and key partnerships established.
+
+The month began with intensive preparation for our flagship product launch...
+
+[Detailed AI-generated summary continues...]
+```
 
 ### 💰 Cost estimation
 
 - **Small export** (3 months): ~$0.45 - $0.90
 - **Full processing** (all months): Varies based on conversation volume
 - Uses GPT-5-mini for cost efficiency
+- **Caching reduces costs**: Previously processed months are cached for 7 days
 
 ## 📄 License
 

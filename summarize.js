@@ -127,6 +127,45 @@ function splitMonthContent(content) {
 }
 
 /**
+ * Split month content into four quarters
+ */
+function splitMonthContentIntoFour(content) {
+  const lines = content.split("\n");
+  const quarterSize = Math.floor(lines.length / 4);
+
+  // Find good split points (preferably at date boundaries)
+  const splitPoints = [];
+
+  for (let quarter = 1; quarter < 4; quarter++) {
+    const targetIndex = quarter * quarterSize;
+    let splitIndex = targetIndex;
+
+    // Look for a good split point around the target index
+    for (
+      let i = targetIndex;
+      i < Math.min(targetIndex + quarterSize, lines.length);
+      i++
+    ) {
+      if (lines[i].startsWith("## ")) {
+        splitIndex = i;
+        break;
+      }
+    }
+
+    splitPoints.push(splitIndex);
+  }
+
+  const quarters = [
+    lines.slice(0, splitPoints[0]).join("\n"),
+    lines.slice(splitPoints[0], splitPoints[1]).join("\n"),
+    lines.slice(splitPoints[1], splitPoints[2]).join("\n"),
+    lines.slice(splitPoints[2]).join("\n"),
+  ];
+
+  return quarters;
+}
+
+/**
  * Combine two summaries into one cohesive summary
  */
 async function combineSummaries(firstSummary, secondSummary, monthName) {
@@ -158,6 +197,108 @@ async function combineSummaries(firstSummary, secondSummary, monthName) {
 }
 
 /**
+ * Combine four summaries into one cohesive summary
+ */
+async function combineFourSummaries(summaries, monthName) {
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-5-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a helpful assistant that combines four summaries of the same month into one cohesive summary. Merge the key points, remove duplicates, and create a unified narrative that flows well chronologically.",
+        },
+        {
+          role: "user",
+          content: `Please combine these four summaries for ${monthName} into one comprehensive summary:\n\nFirst quarter summary:\n${summaries[0]}\n\nSecond quarter summary:\n${summaries[1]}\n\nThird quarter summary:\n${summaries[2]}\n\nFourth quarter summary:\n${summaries[3]}`,
+        },
+      ],
+    });
+
+    return completion.choices[0].message.content.trim();
+  } catch (error) {
+    console.error(
+      `❌ Error combining four summaries for ${monthName}:`,
+      error.message
+    );
+    // Fallback: just concatenate the summaries
+    return summaries.join("\n\n");
+  }
+}
+
+/**
+ * Generate a one-sentence summary for a month
+ */
+async function generateOneSentenceSummary(monthFile, fullSummary) {
+  const cacheFilePath = getCacheFilePath(monthFile);
+  const oneSentenceCachePath = cacheFilePath.replace(
+    ".json",
+    "-onesentence.json"
+  );
+
+  // Check if one-sentence summary is cached
+  if (fs.existsSync(oneSentenceCachePath)) {
+    try {
+      const cacheData = JSON.parse(
+        fs.readFileSync(oneSentenceCachePath, "utf8")
+      );
+      const cacheAge = Date.now() - cacheData.timestamp;
+      const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+      if (cacheAge <= maxAge && cacheData.oneSentenceSummary) {
+        console.log(`💾 Using cached one-sentence summary for ${monthFile}`);
+        return cacheData.oneSentenceSummary;
+      }
+    } catch (error) {
+      console.log(
+        `🗑️  Corrupted one-sentence cache for ${monthFile}, will regenerate`
+      );
+    }
+  }
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-5-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a helpful assistant that creates concise one-sentence summaries. Create a single, clear sentence that captures the most important events, decisions, or themes from the given month's summary. Focus on the most significant developments or outcomes.",
+        },
+        {
+          role: "user",
+          content: `Please create a one-sentence summary of this month's activities:\n\n${fullSummary}`,
+        },
+      ],
+    });
+
+    const oneSentenceSummary = completion.choices[0].message.content.trim();
+
+    // Save to cache
+    const cacheData = {
+      timestamp: Date.now(),
+      monthFile: monthFile,
+      oneSentenceSummary: oneSentenceSummary,
+      model: "gpt-5-mini",
+    };
+    fs.writeFileSync(
+      oneSentenceCachePath,
+      JSON.stringify(cacheData, null, 2),
+      "utf8"
+    );
+
+    return oneSentenceSummary;
+  } catch (error) {
+    console.error(
+      `❌ Error generating one-sentence summary for ${monthFile}:`,
+      error.message
+    );
+    return "Unable to generate summary.";
+  }
+}
+
+/**
  * Generate summary for a single month using OpenAI API
  */
 async function generateMonthSummary(monthFile, outputDir) {
@@ -175,7 +316,21 @@ async function generateMonthSummary(monthFile, outputDir) {
   const cachedSummary = getCachedSummary(monthFile);
   if (cachedSummary) {
     console.log(`💾 Using cached summary for ${monthName}`);
-    return cachedSummary;
+
+    // Generate one-sentence summary for cached content
+    console.log(`📝 Generating one-sentence summary for ${monthName}...`);
+    const oneSentenceSummary = await generateOneSentenceSummary(
+      monthFile,
+      cachedSummary
+    );
+
+    // Add tl;dr section to cached summary
+    const summaryWithTldr = cachedSummary.replace(
+      `## ${monthName}\n\n`,
+      `## ${monthName}\n\n**tl;dr:** ${oneSentenceSummary}\n\n`
+    );
+
+    return summaryWithTldr;
   }
 
   console.log(`📝 Summarizing ${monthName}...`);
@@ -206,11 +361,24 @@ async function generateMonthSummary(monthFile, outputDir) {
 
     const formattedSummary = `## ${monthName}\n\n${summary}`;
 
-    // Save to cache
+    // Generate one-sentence summary
+    console.log(`📝 Generating one-sentence summary for ${monthName}...`);
+    const oneSentenceSummary = await generateOneSentenceSummary(
+      monthFile,
+      formattedSummary
+    );
+
+    // Add tl;dr section to the summary
+    const summaryWithTldr = formattedSummary.replace(
+      `## ${monthName}\n\n`,
+      `## ${monthName}\n\n**tl;dr:** ${oneSentenceSummary}\n\n`
+    );
+
+    // Save to cache (without tl;dr to keep original format)
     saveToCache(monthFile, formattedSummary);
     console.log(`💾 Cached summary for ${monthName}`);
 
-    return formattedSummary;
+    return summaryWithTldr;
   } catch (error) {
     // Check if this is a token limit error
     if (
@@ -262,17 +430,110 @@ async function generateMonthSummary(monthFile, outputDir) {
         const combinedSummary = `${firstSummary}${secondSummary}`;
         const formattedSummary = `## ${monthName}\n\n${combinedSummary}`;
 
-        // Save to cache
+        // Generate one-sentence summary
+        console.log(`📝 Generating one-sentence summary for ${monthName}...`);
+        const oneSentenceSummary = await generateOneSentenceSummary(
+          monthFile,
+          formattedSummary
+        );
+
+        // Add tl;dr section to the summary
+        const summaryWithTldr = formattedSummary.replace(
+          `## ${monthName}\n\n`,
+          `## ${monthName}\n\n**tl;dr:** ${oneSentenceSummary}\n\n`
+        );
+
+        // Save to cache (without tl;dr to keep original format)
         saveToCache(monthFile, formattedSummary);
         console.log(`💾 Cached combined summary for ${monthName}`);
 
-        return formattedSummary;
+        return summaryWithTldr;
       } catch (splitError) {
-        console.error(
-          `❌ Error summarizing split content for ${monthName}:`,
-          splitError.message
-        );
-        return `## ${monthName}\n\nError generating summary: ${splitError.message}`;
+        // If 2-part splitting also fails due to token limits, try 4-part splitting
+        if (
+          splitError.message.includes("Input tokens exceed") ||
+          splitError.message.includes("token limit")
+        ) {
+          console.log(
+            `⚠️  Two-part splitting also exceeded token limit for ${monthName}, trying four-part splitting...`
+          );
+
+          try {
+            const quarters = splitMonthContentIntoFour(content);
+            const quarterSummaries = [];
+
+            // Generate summaries for each quarter
+            for (let i = 0; i < quarters.length; i++) {
+              const quarterNames = ["first", "second", "third", "fourth"];
+              console.log(
+                `📝 Summarizing ${quarterNames[i]} quarter of ${monthName}...`
+              );
+
+              const quarterCompletion = await openai.chat.completions.create({
+                model: "gpt-5-mini",
+                messages: [
+                  {
+                    role: "system",
+                    content: getSystemPrompt(),
+                  },
+                  {
+                    role: "user",
+                    content: `# ${monthName} (${
+                      quarterNames[i].charAt(0).toUpperCase() +
+                      quarterNames[i].slice(1)
+                    } Quarter)\n\n${quarters[i]}`,
+                  },
+                ],
+              });
+
+              quarterSummaries.push(
+                quarterCompletion.choices[0].message.content.trim()
+              );
+            }
+
+            console.log(`🔗 Combining four summaries for ${monthName}...`);
+            const combinedSummary = await combineFourSummaries(
+              quarterSummaries,
+              monthName
+            );
+            const formattedSummary = `## ${monthName}\n\n${combinedSummary}`;
+
+            // Generate one-sentence summary
+            console.log(
+              `📝 Generating one-sentence summary for ${monthName}...`
+            );
+            const oneSentenceSummary = await generateOneSentenceSummary(
+              monthFile,
+              formattedSummary
+            );
+
+            // Add tl;dr section to the summary
+            const summaryWithTldr = formattedSummary.replace(
+              `## ${monthName}\n\n`,
+              `## ${monthName}\n\n**tl;dr:** ${oneSentenceSummary}\n\n`
+            );
+
+            // Save to cache (without tl;dr to keep original format)
+            saveToCache(monthFile, formattedSummary);
+            console.log(
+              `💾 Cached four-part combined summary for ${monthName}`
+            );
+
+            return summaryWithTldr;
+          } catch (fourPartError) {
+            console.error(
+              `❌ Error summarizing four-part content for ${monthName}:`,
+              fourPartError.message
+            );
+            return `## ${monthName}\n\nError generating summary: ${fourPartError.message}`;
+          }
+        } else {
+          console.error(
+            `❌ Error summarizing split content for ${monthName}:`,
+            splitError.message
+          );
+          return `## ${monthName}\n\nError generating summary: ${splitError.message}`;
+        }
       }
     } else {
       console.error(`❌ Error summarizing ${monthName}:`, error.message);
@@ -432,6 +693,7 @@ if (require.main === module) {
 
 module.exports = {
   generateMonthSummary,
+  generateOneSentenceSummary,
   getMonthlyFiles,
   main,
   getCacheDir,
@@ -439,5 +701,7 @@ module.exports = {
   getCachedSummary,
   saveToCache,
   splitMonthContent,
+  splitMonthContentIntoFour,
   combineSummaries,
+  combineFourSummaries,
 };
