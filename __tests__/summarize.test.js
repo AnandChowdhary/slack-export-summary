@@ -8,7 +8,7 @@ const { getMonthlyFiles } = require("../summarize");
 
 describe("Summarization functionality", () => {
   const testDataPath = path.join(__dirname, "test-data");
-  const outputPath = path.join(testDataPath, "output");
+  const outputPath = path.join(__dirname, "summarize-test-output");
 
   beforeEach(() => {
     // Create test output directory with sample files
